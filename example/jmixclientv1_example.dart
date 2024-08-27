@@ -1,8 +1,11 @@
 import 'package:jmixclientv1/jmixclientv1.dart';
 import 'package:jmixclientv1/src/entities/entity.dart';
+import 'package:jmixclientv1/src/entities/query.dart';
+import 'package:jmixclientv1/src/entities/service.dart';
 import 'package:jmixclientv1/src/entities/session.dart';
 import 'package:jmixclientv1/src/entities/user.dart';
 import 'package:jmixclientv1/src/entities/user_info.dart';
+import 'package:jmixclientv1/src/entities/wheres.dart';
 
 Future<void> main() async {
   final JmixClient jmixClient = JmixClient(
@@ -46,7 +49,7 @@ Future<void> main() async {
   }
 
   final String id = await jmixClient.createEntity(
-      name: 'User', entity: EmptyEntity(map: {'username': 'admin2'}));
+      name: 'User', entity: MapEntity(map: {'username': 'admin2'}));
   await jmixClient.deleteEntity(name: 'User', id: id);
 
   final List<Query> queries = await jmixClient.getQueries(name: 'User');
