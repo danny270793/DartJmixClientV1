@@ -40,9 +40,6 @@ jobs:
       - name: Run tests
         run: dart test
       
-      - name: Run tests
-        run: dart pub publish
-
   publish:
     permissions:
       id-token: write # Required for authentication using OIDC
