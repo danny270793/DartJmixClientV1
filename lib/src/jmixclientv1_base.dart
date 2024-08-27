@@ -66,6 +66,18 @@ class JmixClient {
     return Session.fromMap(json.decode(response));
   }
 
+  Future<Session> revokeAccessToken({required String accessToken}) async {
+    final String response =
+        await httpClient.post(url: '$url/oauth/revoke', headers: {
+      'Authorization': basicAuthorization,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }, body: {
+      'accessToken': accessToken
+    });
+
+    return Session.fromMap(json.decode(response));
+  }
+
   Future<dynamic> refreshTokenAndRetry(
       {required InvalidHttpRequestException error,
       required Function callback}) async {
