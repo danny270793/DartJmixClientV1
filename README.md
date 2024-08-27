@@ -57,7 +57,7 @@ Future<void> main() async {
 
 ## LICENSE
 
-[![GitHub License](https://img.shields.io/github/license/danny270793/DartJmixClientV1)](license.md)
+[![GitHub License](https://img.shields.io/github/license/danny270793/DartJmixClientV1)](LICENSE)
 
 ## Version
 
