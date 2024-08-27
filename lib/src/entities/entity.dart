@@ -1,22 +1,13 @@
 import 'dart:convert';
 
-abstract class EntityToCreate {
-  @override
-  String toString() => json.encode(toMap());
-
-  Map<String, dynamic> toMap();
-}
-
-class EmptyEntity implements EntityToCreate {
+class MapEntity {
   final Map<String, dynamic> map;
 
-  EmptyEntity({required this.map});
+  MapEntity({required this.map});
 
-  @override
   Map<String, dynamic> toMap() => map;
 
-  factory EmptyEntity.fromMap(Map<String, dynamic> map) =>
-      EmptyEntity(map: map);
+  factory MapEntity.fromMap(Map<String, dynamic> map) => MapEntity(map: map);
 }
 
 abstract class Entity {

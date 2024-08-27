@@ -1,158 +1,14 @@
 import 'dart:convert';
 
 import 'package:jmixclientv1/src/entities/entity.dart';
+import 'package:jmixclientv1/src/entities/query.dart';
+import 'package:jmixclientv1/src/entities/service.dart';
 import 'package:jmixclientv1/src/entities/session.dart';
 import 'package:jmixclientv1/src/entities/user_info.dart';
+import 'package:jmixclientv1/src/entities/wheres.dart';
+import 'package:jmixclientv1/src/exceptions/invalid_http_request_exception.dart';
+import 'package:jmixclientv1/src/exceptions/invalid_refresh_token.dart';
 import 'package:jmixclientv1/src/http_client.dart';
-
-class ServiceMethods {
-  final String name;
-  final String? type;
-
-  ServiceMethods({required this.name, required this.type});
-
-  @override
-  String toString() {
-    return json.encode(toMap());
-  }
-
-  Map<String, dynamic> toMap() {
-    return {'name': name, 'type': type};
-  }
-
-  factory ServiceMethods.fromMap(Map<String, dynamic> json) {
-    return ServiceMethods(name: json['name'], type: json['type']);
-  }
-}
-
-class Service {
-  final String name;
-  final List<ServiceMethods> methods;
-
-  Service({required this.name, required this.methods});
-
-  @override
-  String toString() {
-    return json.encode(toMap());
-  }
-
-  Map<String, dynamic> toMap() {
-    return {'name': name, 'methods': methods.map((e) => e.toMap()).toList()};
-  }
-
-  factory Service.fromMap(Map<String, dynamic> json) {
-    return Service(
-        name: json['name'],
-        methods: json['methods']
-            .map<ServiceMethods>(
-                (serviceMethods) => ServiceMethods.fromMap(serviceMethods))
-            .toList());
-  }
-}
-
-class QueryParams {
-  final String name;
-  final String type;
-
-  QueryParams({required this.name, required this.type});
-
-  @override
-  String toString() {
-    return json.encode(toMap());
-  }
-
-  Map<String, dynamic> toMap() {
-    return {'name': name, 'type': type};
-  }
-
-  factory QueryParams.fromMap(Map<String, dynamic> json) {
-    return QueryParams(name: json['name'], type: json['type']);
-  }
-}
-
-class Query {
-  final String name;
-  final String jpql;
-  final String entityName;
-  final String fetchPlanName;
-  final QueryParams params;
-
-  Query({
-    required this.name,
-    required this.jpql,
-    required this.entityName,
-    required this.fetchPlanName,
-    required this.params,
-  });
-
-  @override
-  String toString() {
-    return json.encode(toMap());
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'jpql': jpql,
-      'entityName': entityName,
-      'fetchPlanName': fetchPlanName,
-      'params': params
-    };
-  }
-
-  factory Query.fromMap(Map<String, dynamic> json) {
-    return Query(
-        name: json['name'],
-        jpql: json['jpql'],
-        entityName: json['entityName'],
-        fetchPlanName: json['fetchPlanName'],
-        params: QueryParams.fromMap(json['params']));
-  }
-}
-
-abstract class GroupCondition {
-  Map<String, dynamic> toMap();
-}
-
-class Group implements GroupCondition {
-  final String type;
-  final List<Condition> conditions;
-
-  Group({required this.type, required this.conditions});
-
-  @override
-  String toString() {
-    return json.encode(toMap());
-  }
-
-  @override
-  Map<String, dynamic> toMap() {
-    return {
-      'group': type,
-      'conditions':
-          conditions.map((Condition condition) => condition.toMap()).toList()
-    };
-  }
-}
-
-class Condition implements GroupCondition {
-  final String property;
-  final String operator;
-  final String value;
-
-  Condition(
-      {required this.property, required this.operator, required this.value});
-
-  @override
-  String toString() {
-    return json.encode(toMap());
-  }
-
-  @override
-  Map<String, dynamic> toMap() {
-    return {'property': property, 'operator': operator, 'value': value};
-  }
-}
 
 class JmixClient {
   final HttpClient httpClient = HttpClient();
@@ -298,7 +154,7 @@ class JmixClient {
     }
   }
 
-  Future<String> createEntity<T extends EntityToCreate>(
+  Future<String> createEntity<T extends MapEntity>(
       {required String name, required T entity}) async {
     try {
       final String response = await httpClient.post(
