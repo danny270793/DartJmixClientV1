@@ -25,7 +25,9 @@ Future<void> main() async {
 
   final List<User> users = await jmixClient.getEntities<User>(
       name: 'User', parseCallback: (Map<String, dynamic> e) => User.fromMap(e));
-  users.forEach((e) => print(e.toMap()));
+  for (final User user in users) {
+    print(user.toMap());
+  }
 
   final User user = await jmixClient.getEntity<User>(
       name: 'User',
@@ -39,7 +41,9 @@ Future<void> main() async {
         Condition(property: 'username', operator: '=', value: 'danny270793')
       ],
       parseCallback: (Map<String, dynamic> e) => User.fromMap(e));
-  matchUsers.forEach((e) => print(e.toMap()));
+  for (final User user in matchUsers) {
+    print(user.toMap());
+  }
 
   final String id = await jmixClient.createEntity(
       name: 'User', entity: EmptyEntity(map: {'username': 'admin2'}));
