@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 class MapEntity {
   final Map<String, dynamic> map;
 
