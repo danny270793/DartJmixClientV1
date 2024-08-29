@@ -7,6 +7,7 @@ import 'package:jmixclientv1/src/entities/session.dart';
 import 'package:jmixclientv1/src/entities/user_info.dart';
 import 'package:jmixclientv1/src/entities/wheres.dart';
 import 'package:jmixclientv1/src/exceptions/invalid_http_request_exception.dart';
+import 'package:jmixclientv1/src/exceptions/invalid_http_response_exception.dart';
 import 'package:jmixclientv1/src/exceptions/invalid_refresh_token.dart';
 import 'package:jmixclientv1/src/http_client.dart';
 
@@ -318,7 +319,7 @@ class JmixClient {
 
   Future<List<Service>> getServices() async {
     try {
-      String response = await httpClient.get(
+      final String response = await httpClient.get(
           url: '$url/rest/services',
           headers: {'Authorization': 'Bearer ${session.accessToken}'});
       final dynamic parsed = json.decode(response).cast<Map<String, dynamic>>();
@@ -342,19 +343,26 @@ class JmixClient {
     }
   }
 
-  Future<T> executeService<T>({
+  Future<dynamic> executeService<T>({
     required String name,
     required String method,
     required Map<String, dynamic> body,
     required T Function(Map<String, dynamic> map) parseCallback,
   }) async {
     try {
-      String response = await httpClient.post(
+      final String response = await httpClient.post(
           url: '$url/rest/services/$name/$method',
           headers: {'Authorization': 'Bearer ${session.accessToken}'},
           body: body);
-      final dynamic parsed = json.decode(response).cast<Map<String, dynamic>>();
-      return parsed.map<T>((json) => parseCallback(json)).toList();
+      final dynamic responseParsed = json.decode(response);
+      if (responseParsed is List) {
+        final dynamic parsed = responseParsed.cast<Map<String, dynamic>>();
+        return parsed.map<T>((json) => parseCallback(json)).toList();
+      } else if (responseParsed is Map) {
+        return parseCallback(responseParsed as Map<String, dynamic>);
+      } else {
+        throw InvalidHttpResponseException(type: responseParsed.runtimeType);
+      }
     } on InvalidHttpRequestException catch (error) {
       return await refreshTokenAndRetry(
           error: error,
