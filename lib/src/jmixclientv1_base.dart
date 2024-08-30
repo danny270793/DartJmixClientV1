@@ -354,6 +354,10 @@ class JmixClient {
           url: '$url/rest/services/$name/$method',
           headers: {'Authorization': 'Bearer ${session.accessToken}'},
           body: body);
+      if (response == '') {
+        return null;
+      }
+
       final dynamic responseParsed = json.decode(response);
       if (responseParsed is List) {
         final dynamic parsed = responseParsed.cast<Map<String, dynamic>>();

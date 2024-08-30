@@ -11,3 +11,7 @@
 ## 1.0.2
 
 - executeService can receive list or map and will return parsed.
+
+## 1.0.3
+
+- if execute service receives empty string, return null
