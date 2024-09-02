@@ -54,6 +54,10 @@ class JmixClient {
     return session;
   }
 
+  void setAccessToken({required Session session}) {
+    this.session = session;
+  }
+
   Future<Session> refreshAccessToken({required String refreshToken}) async {
     final String response =
         await httpClient.post(url: '$url/oauth/token', headers: {
