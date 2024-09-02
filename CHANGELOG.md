@@ -15,3 +15,7 @@
 ## 1.0.3
 
 - if execute service receives empty string, return null
+
+## 1.0.4
+
+- add function to set already saved session
