@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:jmixclientv1/src/entities/entity.dart';
 import 'package:jmixclientv1/src/entities/query.dart';
@@ -31,11 +33,11 @@ class JmixClient {
     required this.clientId,
     required this.clientSecret,
   }) {
-    final String authorizationClean = "$clientId:$clientSecret";
+    final String authorizationClean = '$clientId:$clientSecret';
     final List<int> authorizationEncoded = utf8.encode(authorizationClean);
     final String authorizationBase64 = base64.encode(authorizationEncoded);
-    basicAuthorization = "Basic $authorizationBase64";
-    url = "$protocol://$hostname:$port";
+    basicAuthorization = 'Basic $authorizationBase64';
+    url = '$protocol://$hostname:$port';
   }
 
   Future<Session> getAccessToken(
@@ -86,6 +88,10 @@ class JmixClient {
   Future<dynamic> refreshTokenAndRetry(
       {required InvalidHttpRequestException error,
       required Function callback}) async {
+    if (error.invalidResponse.body == '') {
+      throw error;
+    }
+
     final Map<String, dynamic> errorAsJson =
         json.decode(error.invalidResponse.body);
     final String errorType = errorAsJson['error'] ?? '';
@@ -394,6 +400,40 @@ class JmixClient {
       return await refreshTokenAndRetry(
           error: error,
           callback: () => getUserInfo(parseCallback: parseCallback));
+    }
+  }
+
+  Future<Map<String, dynamic>> uploadFile(
+      {required path, required name}) async {
+    try {
+      String response = await httpClient.upload(
+          file: path,
+          query: {'name': name},
+          url: '$url/rest/files',
+          headers: {
+            'Authorization': 'Bearer ${session.accessToken}',
+            'Content-Type': 'image/png',
+          });
+      return json.decode(response);
+    } on InvalidHttpRequestException catch (error) {
+      return await refreshTokenAndRetry(
+          error: error, callback: () => uploadFile(path: path, name: name));
+    }
+  }
+
+  Future<File> downloadFile({required String id, required String path}) async {
+    try {
+      final Uint8List response = await httpClient.download(
+          url: '$url/rest/files?fileRef=${Uri.encodeComponent(id)}',
+          headers: {
+            'Authorization': 'Bearer ${session.accessToken}',
+            'Content-Type': 'image/png',
+          });
+      return File(path).writeAsBytes(response);
+    } on InvalidHttpRequestException catch (error) {
+      (error.invalidResponse);
+      return await refreshTokenAndRetry(
+          error: error, callback: () => downloadFile(path: path, id: id));
     }
   }
 }
