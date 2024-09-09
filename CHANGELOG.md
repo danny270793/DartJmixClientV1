@@ -19,3 +19,7 @@
 ## 1.0.4
 
 - add function to set already saved session
+
+## 1.0.5
+
+- add upload/download option
