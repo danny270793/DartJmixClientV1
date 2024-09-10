@@ -23,3 +23,7 @@
 ## 1.0.5
 
 - add upload/download option
+
+## 1.0.6
+
+- do not tie to Session object
