@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:math';
+
 import 'package:jmixclientv1/jmixclientv1.dart';
 import 'package:jmixclientv1/src/entities/entity.dart';
 import 'package:jmixclientv1/src/entities/query.dart';
@@ -6,6 +9,31 @@ import 'package:jmixclientv1/src/entities/session.dart';
 import 'package:jmixclientv1/src/entities/user.dart';
 import 'package:jmixclientv1/src/entities/user_info.dart';
 import 'package:jmixclientv1/src/entities/wheres.dart';
+
+class ExcelUploaded extends Entity {
+  final String name;
+  final String excel;
+  ExcelUploaded(
+      {required this.name,
+      required this.excel,
+      required super.id,
+      required super.entityName,
+      required super.instanceName});
+
+  factory ExcelUploaded.fromMap(final Map<String, dynamic> map) {
+    return ExcelUploaded(
+        name: map['name'],
+        excel: map['excel'],
+        id: map['id'],
+        entityName: map['_entityName'],
+        instanceName: map['_instanceName']);
+  }
+
+  @override
+  Map<String, dynamic> toMap() {
+    return {'name': name, 'excel': excel};
+  }
+}
 
 Future<void> main() async {
   final JmixClient jmixClient = JmixClient(
@@ -18,6 +46,84 @@ Future<void> main() async {
     clientSecret: String.fromEnvironment('JMIX_CLIENT_SECRET',
         defaultValue: '2fc9f1be5d7b0d18f25be642b3af1e5b'),
   );
+
+  final Session session = await jmixClient.getAccessToken(
+      username: 'admin',
+      password: 'admin',
+      parseCallback: (map) => Session.fromMap(map));
+  print(session.toMap());
+
+  final List<User> users = await jmixClient.getEntities<User>(
+      name: 'User', parseCallback: (e) => User.fromMap(e));
+  print(users);
+
+  /*
+  final List<ExcelUploaded> excels =
+      await jmixClient.getEntities<ExcelUploaded>(
+          name: 'ExcelUploaded',
+          parseCallback: ((e) => ExcelUploaded.fromMap(e)));
+  print(excels);
+
+  final Map<String, dynamic> fileUploaded = await jmixClient.uploadFile(
+      path:
+          '/home/dvaca/Gitlab/danny-vaca/customers/edgar-zeas/courier-app/documents/OP156-906-13152473_09.08.24_EZ EXPRESS.xlsx',
+      name: 'OP156-906-13152473_09.08.24_EZ EXPRESS.xlsx');
+  print(fileUploaded);
+
+  final File file = await jmixClient.downloadFile(
+      id: fileUploaded['fileRef'], path: fileUploaded['name']);
+  print(file);
+  */
+
+  /*
+  final List<User> users = await jmixClient.getEntities<User>(
+      name: 'User', parseCallback: (e) => User.fromMap(e));
+
+  final User user = await jmixClient.executeService<User>(
+      name: 'MobileApp',
+      method: 'createUser',
+      body: {
+        "username": "danny${users.length + 1}",
+        "password": "danny",
+        "firstname": "danny",
+        "lastname": "danny"
+      },
+      parseCallback: (e) => User.fromMap(e));
+  print(user.toMap());
+
+  await jmixClient.executeService(
+      name: 'MobileApp',
+      method: 'updatePassword',
+      body: {"password": "admin"},
+      parseCallback: (e) => e);
+  */
+
+  /*
+  final List<User> users = await jmixClient.getEntities<User>(
+      name: 'User', parseCallback: (e) => User.fromMap(e));
+
+  final User user = await jmixClient.executeService<User>(
+      name: 'MobileApp',
+      method: 'createUser',
+      body: {
+        "username": "danny${users.length + 1}",
+        "password": "danny",
+        "firstname": "danny",
+        "lastname": "danny"
+      },
+      parseCallback: (e) => User.fromMap(e));
+  print(user.toMap());
+
+  final List<Map<String, dynamic>> rows =
+      await jmixClient.executeService<Map<String, dynamic>>(
+          name: 'MobileApp',
+          method: 'getMyExcelRows',
+          body: {},
+          parseCallback: (e) => e);
+  print(rows);
+  */
+
+  /*
   final Session session =
       await jmixClient.getAccessToken(username: 'admin', password: 'admin');
   print(session.toMap());
@@ -72,4 +178,5 @@ Future<void> main() async {
           body: {'password': '270793'},
           parseCallback: (map) => map);
   print(serviceResult);
+  */
 }
