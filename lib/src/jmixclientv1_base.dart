@@ -40,8 +40,10 @@ class JmixClient {
     url = '$protocol://$hostname:$port';
   }
 
-  Future<Session> getAccessToken(
-      {required String username, required String password}) async {
+  Future<T> getAccessToken<T>(
+      {required String username,
+      required String password,
+      required T Function(Map<String, dynamic> map) parseCallback}) async {
     final String response =
         await httpClient.post(url: '$url/oauth/token', headers: {
       'Authorization': basicAuthorization,
@@ -52,15 +54,32 @@ class JmixClient {
       'password': password
     });
 
-    session = Session.fromMap(json.decode(response));
-    return session;
+    final dynamic jsonDecoded = json.decode(response);
+
+    session = Session.fromMap(jsonDecoded);
+
+    return parseCallback(jsonDecoded);
   }
 
-  void setAccessToken({required Session session}) {
-    this.session = session;
+  void setAccessToken(
+      {required String accessToken,
+      required String tokenType,
+      required String refreshToken,
+      required int expiresIn,
+      required String scope,
+      required String sessionId}) {
+    session = Session(
+        accessToken: accessToken,
+        tokenType: tokenType,
+        refreshToken: refreshToken,
+        expiresIn: expiresIn,
+        scope: scope,
+        sessionId: sessionId);
   }
 
-  Future<Session> refreshAccessToken({required String refreshToken}) async {
+  Future<T> refreshAccessToken<T>(
+      {required String refreshToken,
+      required T Function(Map<String, dynamic> map) parseCallback}) async {
     final String response =
         await httpClient.post(url: '$url/oauth/token', headers: {
       'Authorization': basicAuthorization,
@@ -70,10 +89,12 @@ class JmixClient {
       'refresh_token': refreshToken
     });
 
-    return Session.fromMap(json.decode(response));
+    return parseCallback(json.decode(response));
   }
 
-  Future<Session> revokeAccessToken({required String accessToken}) async {
+  Future<T> revokeAccessToken<T>(
+      {required String accessToken,
+      required T Function(Map<String, dynamic> map) parseCallback}) async {
     final String response =
         await httpClient.post(url: '$url/oauth/revoke', headers: {
       'Authorization': basicAuthorization,
@@ -82,7 +103,7 @@ class JmixClient {
       'accessToken': accessToken
     });
 
-    return Session.fromMap(json.decode(response));
+    return parseCallback(json.decode(response));
   }
 
   Future<dynamic> refreshTokenAndRetry(
@@ -100,7 +121,9 @@ class JmixClient {
     }
 
     if (errorType.contains('invalid_token')) {
-      session = await refreshAccessToken(refreshToken: session.refreshToken);
+      session = await refreshAccessToken(
+          refreshToken: session.refreshToken,
+          parseCallback: (map) => Session.fromMap(map));
       return await callback();
     }
 
