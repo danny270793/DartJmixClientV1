@@ -27,3 +27,7 @@
 ## 1.0.6
 
 - do not tie to Session object
+
+## 1.0.7
+
+- add missing endpoints
