@@ -2,7 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:jmixclientv1/src/entities/datatype.dart';
 import 'package:jmixclientv1/src/entities/entity.dart';
+import 'package:jmixclientv1/src/entities/entity_metadata.dart';
+import 'package:jmixclientv1/src/entities/enum_metadata.dart';
+import 'package:jmixclientv1/src/entities/premission.dart';
 import 'package:jmixclientv1/src/entities/query.dart';
 import 'package:jmixclientv1/src/entities/service.dart';
 import 'package:jmixclientv1/src/entities/session.dart';
@@ -40,6 +44,48 @@ class JmixClient {
     url = '$protocol://$hostname:$port';
   }
 
+  void setAccessToken(
+      {required String accessToken,
+      required String tokenType,
+      required String refreshToken,
+      required int expiresIn,
+      required String scope,
+      required String sessionId}) {
+    session = Session(
+        accessToken: accessToken,
+        tokenType: tokenType,
+        refreshToken: refreshToken,
+        expiresIn: expiresIn,
+        scope: scope,
+        sessionId: sessionId);
+  }
+
+  Future<dynamic> refreshTokenAndRetry(
+      {required InvalidHttpRequestException error,
+      required Function callback}) async {
+    if (error.invalidResponse.body == '') {
+      throw error;
+    }
+
+    final Map<String, dynamic> errorAsJson =
+        json.decode(error.invalidResponse.body);
+    final String errorType = errorAsJson['error'] ?? '';
+    if (errorType == 'invalid_grant') {
+      throw InvalidRefreshToken(message: error.invalidResponse.body);
+    }
+
+    if (errorType.contains('invalid_token')) {
+      session = await refreshAccessToken(
+          refreshToken: session.refreshToken,
+          parseCallback: (map) => Session.fromMap(map));
+      return await callback();
+    }
+
+    throw error;
+  }
+
+  //OAUTH
+
   Future<T> getAccessToken<T>(
       {required String username,
       required String password,
@@ -59,22 +105,6 @@ class JmixClient {
     session = Session.fromMap(jsonDecoded);
 
     return parseCallback(jsonDecoded);
-  }
-
-  void setAccessToken(
-      {required String accessToken,
-      required String tokenType,
-      required String refreshToken,
-      required int expiresIn,
-      required String scope,
-      required String sessionId}) {
-    session = Session(
-        accessToken: accessToken,
-        tokenType: tokenType,
-        refreshToken: refreshToken,
-        expiresIn: expiresIn,
-        scope: scope,
-        sessionId: sessionId);
   }
 
   Future<T> refreshAccessToken<T>(
@@ -106,29 +136,7 @@ class JmixClient {
     return parseCallback(json.decode(response));
   }
 
-  Future<dynamic> refreshTokenAndRetry(
-      {required InvalidHttpRequestException error,
-      required Function callback}) async {
-    if (error.invalidResponse.body == '') {
-      throw error;
-    }
-
-    final Map<String, dynamic> errorAsJson =
-        json.decode(error.invalidResponse.body);
-    final String errorType = errorAsJson['error'] ?? '';
-    if (errorType == 'invalid_grant') {
-      throw InvalidRefreshToken(message: error.invalidResponse.body);
-    }
-
-    if (errorType.contains('invalid_token')) {
-      session = await refreshAccessToken(
-          refreshToken: session.refreshToken,
-          parseCallback: (map) => Session.fromMap(map));
-      return await callback();
-    }
-
-    throw error;
-  }
+  //ENTITIES
 
   Future<List<T>> getEntities<T extends Entity>(
       {required String name,
@@ -215,6 +223,21 @@ class JmixClient {
     }
   }
 
+  Future<String> updateEntity<T extends MapEntity>(
+      {required String name, required String id, required T entity}) async {
+    try {
+      final String response = await httpClient.put(
+          url: '$url/rest/entities/$name/$id',
+          headers: {'Authorization': 'Bearer ${session.accessToken}'},
+          body: entity.toMap());
+      return json.decode(response)['id'];
+    } on InvalidHttpRequestException catch (error) {
+      return await refreshTokenAndRetry(
+          error: error,
+          callback: () => createEntity<T>(name: name, entity: entity));
+    }
+  }
+
   Future<void> deleteEntity<T extends Entity>(
       {required String name, required String id}) async {
     try {
@@ -279,6 +302,8 @@ class JmixClient {
     }
   }
 
+  //QUERIES
+
   Future<List<Query>> getQueries({required String name}) async {
     try {
       String response = await httpClient.get(
@@ -338,7 +363,7 @@ class JmixClient {
       {required String name, required String id, required T entity}) async {
     try {
       final String response = await httpClient.post(
-          url: '$url/rest/queries/$name/$id',
+          url: '$url/rest/queries/$name/$id/count',
           headers: {'Authorization': 'Bearer ${session.accessToken}'},
           body: entity.toMap());
       return int.parse(response);
@@ -349,6 +374,8 @@ class JmixClient {
               countQueryResults<T>(name: name, id: id, entity: entity));
     }
   }
+
+  //SERVICES
 
   Future<List<Service>> getServices() async {
     try {
@@ -411,20 +438,7 @@ class JmixClient {
     }
   }
 
-  Future<UserInfo<T>> getUserInfo<T extends Entity>(
-      {required T Function(Map<String, dynamic> map) parseCallback}) async {
-    try {
-      String response = await httpClient.get(
-          url: '$url/rest/userInfo',
-          headers: {'Authorization': 'Bearer ${session.accessToken}'});
-      return UserInfo.fromMap(
-          map: json.decode(response), parseCallback: parseCallback);
-    } on InvalidHttpRequestException catch (error) {
-      return await refreshTokenAndRetry(
-          error: error,
-          callback: () => getUserInfo(parseCallback: parseCallback));
-    }
-  }
+  //FILES
 
   Future<Map<String, dynamic>> uploadFile(
       {required path, required name}) async {
@@ -457,6 +471,156 @@ class JmixClient {
       (error.invalidResponse);
       return await refreshTokenAndRetry(
           error: error, callback: () => downloadFile(path: path, id: id));
+    }
+  }
+
+  //PERMISSIONS
+
+  Future<Permission> getPermissions() async {
+    try {
+      final String response = await httpClient.get(
+          url: '$url/rest/permissions',
+          headers: {'Authorization': 'Bearer ${session.accessToken}'});
+      return Permission.fromMap(json.decode(response));
+    } on InvalidHttpRequestException catch (error) {
+      return await refreshTokenAndRetry(
+          error: error, callback: () => getServices());
+    }
+  }
+
+  //METADATA
+
+  Future<List<EntityMetadata>> getEntitiesMetadata() async {
+    try {
+      final String response = await httpClient.get(
+          url: '$url/rest/metadata/entities',
+          headers: {'Authorization': 'Bearer ${session.accessToken}'});
+      final dynamic parsed = json.decode(response).cast<Map<String, dynamic>>();
+      return parsed
+          .map<EntityMetadata>((json) => EntityMetadata.fromMap(json))
+          .toList();
+    } on InvalidHttpRequestException catch (error) {
+      return await refreshTokenAndRetry(
+          error: error, callback: () => getServices());
+    }
+  }
+
+  Future<EntityMetadata> getEntityMetadata({required String name}) async {
+    try {
+      final String response = await httpClient.get(
+          url: '$url/rest/metadata/entities/$name',
+          headers: {'Authorization': 'Bearer ${session.accessToken}'});
+      return EntityMetadata.fromMap(json.decode(response));
+    } on InvalidHttpRequestException catch (error) {
+      return await refreshTokenAndRetry(
+          error: error, callback: () => getServices());
+    }
+  }
+
+  Future<List<EnumMetadata>> getEnumsMetadata() async {
+    try {
+      final String response = await httpClient.get(
+          url: '$url/rest/metadata/enums',
+          headers: {'Authorization': 'Bearer ${session.accessToken}'});
+      final dynamic parsed = json.decode(response).cast<Map<String, dynamic>>();
+      return parsed
+          .map<EnumMetadata>((json) => EnumMetadata.fromMap(json))
+          .toList();
+    } on InvalidHttpRequestException catch (error) {
+      return await refreshTokenAndRetry(
+          error: error, callback: () => getServices());
+    }
+  }
+
+  Future<EnumMetadata> getEnumMetadata() async {
+    try {
+      final String response = await httpClient.get(
+          url: '$url/rest/metadata/enums',
+          headers: {'Authorization': 'Bearer ${session.accessToken}'});
+      return EnumMetadata.fromMap(json.decode(response));
+    } on InvalidHttpRequestException catch (error) {
+      return await refreshTokenAndRetry(
+          error: error, callback: () => getServices());
+    }
+  }
+
+  Future<List<Datatype>> getDatatypes() async {
+    try {
+      final String response = await httpClient.get(
+          url: '$url/rest/metadata/datatypes',
+          headers: {'Authorization': 'Bearer ${session.accessToken}'});
+      final dynamic parsed = json.decode(response).cast<Map<String, dynamic>>();
+      return parsed.map<Datatype>((json) => Datatype.fromMap(json)).toList();
+    } on InvalidHttpRequestException catch (error) {
+      return await refreshTokenAndRetry(
+          error: error, callback: () => getServices());
+    }
+  }
+
+  //MESSAGES
+
+  Future<Map<String, String>> getEntitiesMessages() async {
+    try {
+      final String response = await httpClient.get(
+          url: '$url/rest/messages/entities',
+          headers: {'Authorization': 'Bearer ${session.accessToken}'});
+      return json.decode(response);
+    } on InvalidHttpRequestException catch (error) {
+      return await refreshTokenAndRetry(
+          error: error, callback: () => getServices());
+    }
+  }
+
+  Future<Map<String, String>> getEntityMessages({required String name}) async {
+    try {
+      final String response = await httpClient.get(
+          url: '$url/rest/messages/entities/$name',
+          headers: {'Authorization': 'Bearer ${session.accessToken}'});
+      return json.decode(response);
+    } on InvalidHttpRequestException catch (error) {
+      return await refreshTokenAndRetry(
+          error: error, callback: () => getServices());
+    }
+  }
+
+  Future<Map<String, String>> getEnumsMessages() async {
+    try {
+      final String response = await httpClient.get(
+          url: '$url/rest/messages/enums',
+          headers: {'Authorization': 'Bearer ${session.accessToken}'});
+      return json.decode(response);
+    } on InvalidHttpRequestException catch (error) {
+      return await refreshTokenAndRetry(
+          error: error, callback: () => getServices());
+    }
+  }
+
+  Future<Map<String, String>> getEnumMessages({required String name}) async {
+    try {
+      final String response = await httpClient.get(
+          url: '$url/rest/messages/enums/$name',
+          headers: {'Authorization': 'Bearer ${session.accessToken}'});
+      return json.decode(response);
+    } on InvalidHttpRequestException catch (error) {
+      return await refreshTokenAndRetry(
+          error: error, callback: () => getServices());
+    }
+  }
+
+  //USERINFO
+
+  Future<UserInfo<T>> getUserInfo<T extends Entity>(
+      {required T Function(Map<String, dynamic> map) parseCallback}) async {
+    try {
+      String response = await httpClient.get(
+          url: '$url/rest/userInfo',
+          headers: {'Authorization': 'Bearer ${session.accessToken}'});
+      return UserInfo.fromMap(
+          map: json.decode(response), parseCallback: parseCallback);
+    } on InvalidHttpRequestException catch (error) {
+      return await refreshTokenAndRetry(
+          error: error,
+          callback: () => getUserInfo(parseCallback: parseCallback));
     }
   }
 }
