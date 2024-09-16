@@ -137,7 +137,7 @@ class JmixClient {
 
   //ENTITIES
 
-  Future<List<T>> getEntities<T extends Entity>(
+  Future<List<T>> getEntities<T>(
       {required String name,
       required T Function(Map<String, dynamic> map) parseCallback,
       String? fetchPlan,
@@ -178,7 +178,7 @@ class JmixClient {
     }
   }
 
-  Future<T> getEntity<T extends Entity>(
+  Future<T> getEntity<T>(
       {required String name,
       required String id,
       required T Function(Map<String, dynamic> map) parseCallback,
@@ -608,7 +608,7 @@ class JmixClient {
 
   //USERINFO
 
-  Future<T> getUserInfo<T extends Entity>(
+  Future<T> getUserInfo<T>(
       {required T Function(Map<String, dynamic> map) parseCallback}) async {
     try {
       String response = await httpClient.get(
