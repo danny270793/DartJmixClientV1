@@ -35,3 +35,7 @@
 ## 1.0.8
 
 - return map
+
+## 1.0.9
+
+- remove generic dependency
