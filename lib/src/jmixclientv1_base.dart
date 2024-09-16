@@ -609,14 +609,13 @@ class JmixClient {
 
   //USERINFO
 
-  Future<UserInfo<T>> getUserInfo<T extends Entity>(
+  Future<T> getUserInfo<T extends Entity>(
       {required T Function(Map<String, dynamic> map) parseCallback}) async {
     try {
       String response = await httpClient.get(
           url: '$url/rest/userInfo',
           headers: {'Authorization': 'Bearer ${session.accessToken}'});
-      return UserInfo.fromMap(
-          map: json.decode(response), parseCallback: parseCallback);
+      return parseCallback(json.decode(response));
     } on InvalidHttpRequestException catch (error) {
       return await refreshTokenAndRetry(
           error: error,
