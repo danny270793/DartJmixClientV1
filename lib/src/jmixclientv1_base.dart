@@ -10,7 +10,6 @@ import 'package:jmixclientv1/src/entities/premission.dart';
 import 'package:jmixclientv1/src/entities/query.dart';
 import 'package:jmixclientv1/src/entities/service.dart';
 import 'package:jmixclientv1/src/entities/session.dart';
-import 'package:jmixclientv1/src/entities/user_info.dart';
 import 'package:jmixclientv1/src/entities/wheres.dart';
 import 'package:jmixclientv1/src/exceptions/invalid_http_request_exception.dart';
 import 'package:jmixclientv1/src/exceptions/invalid_http_response_exception.dart';
