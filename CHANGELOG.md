@@ -31,3 +31,7 @@
 ## 1.0.7
 
 - add missing endpoints
+
+## 1.0.8
+
+- return map
